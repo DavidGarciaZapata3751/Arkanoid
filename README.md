@@ -99,3 +99,7 @@ Cada archivo `.jack` contiene comentarios extensos que explican:
 ## 📜 Licencia
 
 Este proyecto es de código abierto y fue desarrollado con fines educativos como parte del curso de Organización de Computadores de la universidad EAFIT.
+
+## 📽️ Video explicativo
+
+link: https://youtu.be/muJYAxBfVxc?si=5W5QPhk5oz-nwauq
