@@ -1,0 +1,14 @@
+// Main.jack
+// Punto de entrada del juego Arkanoid
+
+class Main {
+    function void main() {
+        var ArkanoidGame game;
+        
+        let game = ArkanoidGame.new();
+        do game.run();
+        do game.dispose();
+        
+        return;
+    }
+}

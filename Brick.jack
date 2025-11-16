@@ -1,0 +1,108 @@
+// Brick.jack
+// Representa un ladrillo destruible
+
+class Brick {
+    field int x, y;           // Posición
+    field int width, height;  // Dimensiones
+    field boolean active;     // Si el ladrillo está activo
+    
+    /** Constructor */
+    constructor Brick new(int Ax, int Ay, int Awidth, int Aheight) {
+        let x = Ax;
+        let y = Ay;
+        let width = Awidth;
+        let height = Aheight;
+        let active = true;
+        
+        do draw();
+        return this;
+    }
+    
+    /** Destructor */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+    
+    /** Dibuja el ladrillo */
+    method void draw() {
+        if (active) {
+            do Screen.setColor(true);
+            do Screen.drawRectangle(x, y, x + width, y + height);
+            // Dibuja borde interior
+            do Screen.setColor(false);
+            do Screen.drawRectangle(x + 1, y + 1, x + width - 1, y + height - 1);
+        }
+        return;
+    }
+    
+    /** Destruye el ladrillo */
+    method void destroy() {
+        if (active) {
+            let active = false;
+            do Screen.setColor(false);
+            do Screen.drawRectangle(x, y, x + width, y + height);
+        }
+        return;
+    }
+    
+    /** Verifica colisión con la bola */
+    method boolean checkCollision(Ball ball) {
+        var int ballX, ballY, ballRadius;
+        var boolean hit;
+        
+        if (~active) {
+            return false;
+        }
+        
+        let ballX = ball.getX();
+        let ballY = ball.getY();
+        let ballRadius = ball.getRadius();
+        let hit = false;
+        
+        // Verifica colisión desde arriba o abajo
+        if ((ballX > x) & (ballX < (x + width))) {
+            if (((ballY + ballRadius) > y) & ((ballY + ballRadius) < (y + height + 5))) {
+                do ball.bounceY();
+                let hit = true;
+            }
+            if (((ballY - ballRadius) < (y + height)) & ((ballY - ballRadius) > (y - 5))) {
+                do ball.bounceY();
+                let hit = true;
+            }
+        }
+        
+        // Verifica colisión desde los lados
+        if ((ballY > y) & (ballY < (y + height))) {
+            if (((ballX + ballRadius) > x) & ((ballX + ballRadius) < (x + width + 5))) {
+                do ball.bounceX();
+                let hit = true;
+            }
+            if (((ballX - ballRadius) < (x + width)) & ((ballX - ballRadius) > (x - 5))) {
+                do ball.bounceX();
+                let hit = true;
+            }
+        }
+        
+        if (hit) {
+            do destroy();
+        }
+        
+        return hit;
+    }
+    
+    /** Obtiene la posición X central del ladrillo */
+    method int getCenterX() {
+        return x + (width / 2);
+    }
+    
+    /** Obtiene la posición Y inferior del ladrillo */
+    method int getBottomY() {
+        return y + height;
+    }
+    
+    /** Verifica si el ladrillo está activo */
+    method boolean isActive() {
+        return active;
+    }
+}

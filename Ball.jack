@@ -1,0 +1,142 @@
+// Ball.jack
+// Representa la bola del juego
+
+class Ball {
+    field int x, y;           // Posición
+    field int radius;         // Radio
+    field int velocityX;      // Velocidad en X
+    field int velocityY;      // Velocidad en Y
+    
+    /** Constructor */
+    constructor Ball new(int Ax, int Ay, int Aradius) {
+        let x = Ax;
+        let y = Ay;
+        let radius = Aradius;
+        let velocityX = 2;
+        let velocityY = -2;
+        
+        do draw();
+        return this;
+    }
+    
+    /** Destructor */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+    
+    /** Dibuja la bola */
+    method void draw() {
+        do Screen.setColor(true);
+        do Screen.drawCircle(x, y, radius);
+        return;
+    }
+    
+    /** Borra la bola */
+    method void erase() {
+        do Screen.setColor(false);
+        do Screen.drawCircle(x, y, radius);
+        return;
+    }
+    
+    /** Mueve la bola */
+    method void move() {
+        do erase();
+        let x = x + velocityX;
+        let y = y + velocityY;
+        do draw();
+        return;
+    }
+    
+    /** Invierte la velocidad horizontal */
+    method void bounceX() {
+        let velocityX = -velocityX;
+        return;
+    }
+    
+    /** Invierte la velocidad vertical */
+    method void bounceY() {
+        let velocityY = -velocityY;
+        return;
+    }
+    
+    /** Verifica colisión con bordes de pantalla */
+    method boolean checkWallCollision() {
+        // Borde izquierdo
+        if (x < (radius + 1)) {
+            do bounceX();
+            return true;
+        }
+        
+        // Borde derecho
+        if (x > (511 - radius)) {
+            do bounceX();
+            return true;
+        }
+        
+        // Borde superior
+        if (y < (radius + 1)) {
+            do bounceY();
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /** Verifica colisión con la paleta */
+    method boolean checkPaddleCollision(Paddle paddle) {
+        var int paddleX, paddleY, paddleWidth, paddleHeight;
+        var boolean collision;
+        
+        let paddleX = paddle.getX();
+        let paddleY = paddle.getY();
+        let paddleWidth = paddle.getWidth();
+        let paddleHeight = paddle.getHeight();
+        
+        let collision = false;
+        
+        // Verifica si la bola está a la altura de la paleta
+        if ((y + radius) > paddleY) {
+            if ((y + radius) < (paddleY + paddleHeight + 3)) {
+                // Verifica si está dentro del ancho de la paleta
+                if ((x > paddleX) & (x < (paddleX + paddleWidth))) {
+                    do bounceY();
+                    let collision = true;
+                }
+            }
+        }
+        
+        return collision;
+    }
+    
+    /** Verifica si la bola cayó fuera de la pantalla */
+    method boolean isFallen() {
+        return y > 250;
+    }
+    
+    /** Obtiene la posición X */
+    method int getX() {
+        return x;
+    }
+    
+    /** Obtiene la posición Y */
+    method int getY() {
+        return y;
+    }
+    
+    /** Obtiene el radio */
+    method int getRadius() {
+        return radius;
+    }
+    
+    /** Reinicia la posición de la bola */
+    method void reset(int newX, int newY) {
+        do erase();
+        let x = newX;
+        let y = newY;
+        let velocityX = 2;
+        let velocityY = -2;
+        do draw();
+        return;
+    }
+}

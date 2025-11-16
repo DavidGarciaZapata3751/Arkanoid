@@ -1,0 +1,98 @@
+// Paddle.jack
+// Representa la paleta controlada por el jugador
+
+class Paddle {
+    field int x, y;           // Posición
+    field int width, height;  // Dimensiones
+    field int speed;          // Velocidad de movimiento
+    field int minWidth;       // Ancho mínimo
+    field int shrinkAmount;   // Cantidad a reducir
+    
+    /** Constructor */
+    constructor Paddle new(int Ax, int Ay, int Awidth, int Aheight) {
+        let x = Ax;
+        let y = Ay;
+        let width = Awidth;
+        let height = Aheight;
+        let speed = 6;
+        let minWidth = 20;      // Ancho mínimo permitido
+        let shrinkAmount = 3;   // Reduce 3 píxeles cada vez
+        
+        do draw();
+        return this;
+    }
+    
+    /** Destructor */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+    
+    /** Dibuja la paleta */
+    method void draw() {
+        do Screen.setColor(true);
+        do Screen.drawRectangle(x, y, x + width, y + height);
+        return;
+    }
+    
+    /** Borra la paleta */
+    method void erase() {
+        do Screen.setColor(false);
+        do Screen.drawRectangle(x, y, x + width, y + height);
+        return;
+    }
+    
+    /** Mueve la paleta a la izquierda */
+    method void moveLeft() {
+        if (x > speed) {
+            do erase();
+            let x = x - speed;
+            do draw();
+        }
+        return;
+    }
+    
+    /** Mueve la paleta a la derecha */
+    method void moveRight() {
+        if ((x + width + speed) < 512) {
+            do erase();
+            let x = x + speed;
+            do draw();
+        }
+        return;
+    }
+    
+    /** Obtiene la posición X */
+    method int getX() {
+        return x;
+    }
+    
+    /** Obtiene la posición Y */
+    method int getY() {
+        return y;
+    }
+    
+    /** Obtiene el ancho */
+    method int getWidth() {
+        return width;
+    }
+    
+    /** Obtiene la altura */
+    method int getHeight() {
+        return height;
+    }
+    
+    /** Reduce el tamaño de la paleta */
+    method void shrink() {
+        if (width > minWidth) {
+            do erase();
+            let width = width - shrinkAmount;
+            // Asegura que no sea menor que el mínimo
+            if (width < minWidth) {
+                let width = minWidth;
+            }
+            do draw();
+        }
+        return;
+    }
+}

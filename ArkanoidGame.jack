@@ -1,0 +1,294 @@
+// ArkanoidGame.jack
+// Lógica principal del juego Arkanoid
+
+class ArkanoidGame {
+    field Paddle paddle;
+    field Ball ball;
+    field Array bricks;
+    field Array bombs;
+    field int numBricks;
+    field int maxBombs;
+    field int score;
+    field int lives;
+    field boolean gameOver;
+    
+    /** Constructor */
+    constructor ArkanoidGame new() {
+        var int i, j, brickX, brickY, brickIndex;
+        
+        let paddle = Paddle.new(220, 230, 60, 8);
+        let ball = Ball.new(256, 200, 4);
+        
+        // Crear ladrillos (5 filas x 8 columnas)
+        let numBricks = 40;
+        let bricks = Array.new(numBricks);
+        let brickIndex = 0;
+        
+        let i = 0;
+        while (i < 5) {
+            let j = 0;
+            while (j < 8) {
+                let brickX = 10 + (j * 62);
+                let brickY = 20 + (i * 16);
+                let bricks[brickIndex] = Brick.new(brickX, brickY, 58, 12);
+                let brickIndex = brickIndex + 1;
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+        
+        // Crear array para bombas
+        let maxBombs = 40;
+        let bombs = Array.new(maxBombs);
+        let i = 0;
+        while (i < maxBombs) {
+            let bombs[i] = null;
+            let i = i + 1;
+        }
+        
+        let score = 0;
+        let lives = 3;
+        let gameOver = false;
+        
+        do drawUI();
+        
+        return this;
+    }
+    
+    /** Destructor */
+    method void dispose() {
+        var int i;
+        var Brick brick;
+        var Bomb bomb;
+        
+        do paddle.dispose();
+        do ball.dispose();
+        
+        let i = 0;
+        while (i < numBricks) {
+            let brick = bricks[i];
+            do brick.dispose();
+            let i = i + 1;
+        }
+        
+        let i = 0;
+        while (i < maxBombs) {
+            let bomb = bombs[i];
+            if (~(bomb = null)) {
+                do bomb.dispose();
+            }
+            let i = i + 1;
+        }
+        
+        do bricks.dispose();
+        do bombs.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+    
+    /** Dibuja la interfaz de usuario */
+    method void drawUI() {
+        do Output.moveCursor(0, 0);
+        do Output.printString("Score: ");
+        do Output.printInt(score);
+        do Output.printString("  Lives: ");
+        do Output.printInt(lives);
+        return;
+    }
+    
+    /** Actualiza el puntaje */
+    method void updateScore() {
+        let score = score + 10;
+        do Output.moveCursor(0, 7);
+        do Output.printInt(score);
+        return;
+    }
+    
+    /** Actualiza las vidas */
+    method void updateLives() {
+        do Output.moveCursor(0, 23);
+        do Output.printString("   ");  // Borra el valor anterior con espacios
+        do Output.moveCursor(0, 23);   // Vuelve a posicionar el cursor
+        do Output.printInt(lives);
+        return;
+    }
+    
+    /** Verifica colisiones con todos los ladrillos */
+    method void checkBrickCollisions() {
+        var int i;
+        var Brick brick;
+        var int centerX, bottomY;
+        
+        let i = 0;
+        while (i < numBricks) {
+            let brick = bricks[i];
+            if (brick.checkCollision(ball)) {
+                do updateScore();
+                // Crear bomba en la posición del ladrillo destruido
+                let centerX = brick.getCenterX();
+                let bottomY = brick.getBottomY();
+                do createBomb(centerX, bottomY);
+            }
+            let i = i + 1;
+        }
+        return;
+    }
+    
+    /** Crea una nueva bomba */
+    method void createBomb(int x, int y) {
+        var int i;
+        var Bomb bomb;
+        
+        // Busca un slot vacío en el array de bombas
+        let i = 0;
+        while (i < maxBombs) {
+            let bomb = bombs[i];
+            if (bomb = null) {
+                let bombs[i] = Bomb.new(x, y);
+                return;
+            }
+            if (~(bomb.isActive())) {
+                do bomb.dispose();
+                let bombs[i] = Bomb.new(x, y);
+                return;
+            }
+            let i = i + 1;
+        }
+        return;
+    }
+    
+    /** Actualiza todas las bombas */
+    method void updateBombs() {
+        var int i;
+        var Bomb bomb;
+        
+        let i = 0;
+        while (i < maxBombs) {
+            let bomb = bombs[i];
+            if (~(bomb = null)) {
+                if (bomb.isActive()) {
+                    do bomb.fall();
+                    // Verifica colisión con la paleta
+                    if (bomb.checkPaddleCollision(paddle)) {
+                        let lives = lives - 1;
+                        do updateLives();
+                        if (lives < 1) {
+                            let gameOver = true;
+                        }
+                    }
+                }
+            }
+            let i = i + 1;
+        }
+        return;
+    }
+    
+    /** Verifica si todos los ladrillos han sido destruidos */
+    method boolean allBricksDestroyed() {
+        var int i;
+        var Brick brick;
+        
+        let i = 0;
+        while (i < numBricks) {
+            let brick = bricks[i];
+            if (brick.isActive()) {
+                return false;
+            }
+            let i = i + 1;
+        }
+        return true;
+    }
+    
+    /** Maneja la pérdida de una vida */
+    method void loseLife() {
+        let lives = lives - 1;
+        do updateLives();
+        
+        if (lives > 0) {
+            do ball.reset(256, 200);
+            do Sys.wait(1000);
+        } else {
+            let gameOver = true;
+        }
+        return;
+    }
+    
+    /** Muestra mensaje de victoria */
+    method void showWinMessage() {
+        do Output.moveCursor(11, 22);
+        do Output.printString("YOU WIN!");
+        do Output.moveCursor(12, 18);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score);
+        return;
+    }
+    
+    /** Muestra mensaje de derrota */
+    method void showGameOverMessage() {
+        do Output.moveCursor(11, 21);
+        do Output.printString("GAME OVER");
+        do Output.moveCursor(12, 18);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score);
+        return;
+    }
+    
+    /** Loop principal del juego */
+    method void run() {
+        var char key;
+        var boolean exit;
+        
+        let exit = false;
+        
+        while (~exit) {
+            // Espera para controlar la velocidad del juego
+            do Sys.wait(20);
+            
+            // Lee entrada del teclado
+            let key = Keyboard.keyPressed();
+            
+            if (key = 81) {  // Q para salir
+                let exit = true;
+            }
+            if (key = 130) {  // Flecha izquierda
+                do paddle.moveLeft();
+            }
+            if (key = 132) {  // Flecha derecha
+                do paddle.moveRight();
+            }
+            
+            // Mueve la bola
+            do ball.move();
+            
+            // Actualiza las bombas
+            do updateBombs();
+            
+            // Verifica colisiones
+            do ball.checkWallCollision();
+            if (ball.checkPaddleCollision(paddle)) {
+                do paddle.shrink();  // Reduce el tamaño cuando toca la paleta
+            }
+            do checkBrickCollisions();
+            
+            // Verifica si la bola cayó
+            if (ball.isFallen()) {
+                do loseLife();
+            }
+            
+            // Verifica condiciones de victoria
+            if (allBricksDestroyed()) {
+                do showWinMessage();
+                let exit = true;
+            }
+            
+            // Verifica condiciones de derrota
+            if (gameOver) {
+                do showGameOverMessage();
+                let exit = true;
+            }
+        }
+        
+        return;
+    }
+}
+

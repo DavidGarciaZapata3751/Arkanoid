@@ -1,0 +1,105 @@
+// Bomb.jack
+// Representa una bomba que cae cuando se destruye un ladrillo
+
+class Bomb {
+    field int x, y;           // Posición
+    field int size;           // Tamaño del cuadrado
+    field int speed;          // Velocidad de caída
+    field boolean active;     // Si la bomba está activa
+    
+    /** Constructor */
+    constructor Bomb new(int Ax, int Ay) {
+        let x = Ax;
+        let y = Ay;
+        let size = 6;
+        let speed = 2;
+        let active = true;
+        
+        do draw();
+        return this;
+    }
+    
+    /** Destructor */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+    
+    /** Dibuja la bomba */
+    method void draw() {
+        if (active) {
+            do Screen.setColor(true);
+            do Screen.drawRectangle(x, y, x + size, y + size);
+        }
+        return;
+    }
+    
+    /** Borra la bomba */
+    method void erase() {
+        do Screen.setColor(false);
+        do Screen.drawRectangle(x, y, x + size, y + size);
+        return;
+    }
+    
+    /** Mueve la bomba hacia abajo */
+    method void fall() {
+        if (active) {
+            // Primero verifica si va a salir de la pantalla
+            if ((y + speed + size) > 254) {
+                do erase();  // Borra antes de desactivar
+                let active = false;
+            } else {
+                do erase();
+                let y = y + speed;
+                do draw();
+            }
+        }
+        return;
+    }
+    
+    /** Verifica colisión con la paleta */
+    method boolean checkPaddleCollision(Paddle paddle) {
+        var int paddleX, paddleY, paddleWidth, paddleHeight;
+        var boolean collision;
+        
+        if (~active) {
+            return false;
+        }
+        
+        let paddleX = paddle.getX();
+        let paddleY = paddle.getY();
+        let paddleWidth = paddle.getWidth();
+        let paddleHeight = paddle.getHeight();
+        
+        let collision = false;
+        
+        // Verifica si la bomba toca la paleta
+        if ((y + size) > paddleY) {
+            if (y < (paddleY + paddleHeight)) {
+                if ((x + size) > paddleX) {
+                    if (x < (paddleX + paddleWidth)) {
+                        do erase();
+                        let active = false;
+                        let collision = true;
+                    }
+                }
+            }
+        }
+        
+        return collision;
+    }
+    
+    /** Verifica si la bomba está activa */
+    method boolean isActive() {
+        return active;
+    }
+    
+    /** Desactiva la bomba */
+    method void deactivate() {
+        if (active) {
+            do erase();
+            let active = false;
+        }
+        return;
+    }
+}
