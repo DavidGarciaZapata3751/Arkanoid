@@ -1,108 +1,180 @@
 // Brick.jack
-// Representa un ladrillo destruible
+// Representa un ladrillo destruible del juego Arkanoid
+// Los ladrillos forman la estructura que el jugador debe destruir para ganar
+// Cada ladrillo detecta colisiones con la bola y desaparece al ser golpeado
 
 class Brick {
-    field int x, y;           // Posición
-    field int width, height;  // Dimensiones
-    field boolean active;     // Si el ladrillo está activo
+    // Propiedades de posición
+    field int x, y;           // Coordenadas de la esquina superior izquierda del ladrillo
     
-    /** Constructor */
+    // Propiedades de dimensiones
+    field int width, height;  // Ancho y alto del ladrillo en píxeles
+    
+    // Estado del ladrillo
+    field boolean active;     // Indica si el ladrillo existe (true) o fue destruido (false)
+    
+    /** 
+     * Constructor del ladrillo
+     * Parámetros:
+     *   Ax - Coordenada X de la esquina superior izquierda
+     *   Ay - Coordenada Y de la esquina superior izquierda
+     *   Awidth - Ancho del ladrillo en píxeles (típicamente 58)
+     *   Aheight - Alto del ladrillo en píxeles (típicamente 12)
+     * 
+     * Crea un ladrillo activo y lo dibuja inmediatamente en la pantalla
+     */
     constructor Brick new(int Ax, int Ay, int Awidth, int Aheight) {
-        let x = Ax;
-        let y = Ay;
-        let width = Awidth;
-        let height = Aheight;
-        let active = true;
+        let x = Ax;          // Establece la posición X
+        let y = Ay;          // Establece la posición Y
+        let width = Awidth;  // Establece el ancho
+        let height = Aheight; // Establece el alto
+        let active = true;   // El ladrillo comienza activo (visible y colisionable)
         
-        do draw();
-        return this;
+        do draw();           // Dibuja el ladrillo en la pantalla
+        return this;         // Retorna la instancia creada
     }
     
-    /** Destructor */
+    /** 
+     * Destructor del ladrillo
+     * Libera la memoria ocupada por el objeto Brick
+     */
     method void dispose() {
-        do Memory.deAlloc(this);
+        do Memory.deAlloc(this);  // Libera la memoria del objeto
         return;
     }
     
-    /** Dibuja el ladrillo */
+    /** 
+     * Dibuja el ladrillo en la pantalla
+     * Solo dibuja si el ladrillo está activo
+     * 
+     * Diseño visual:
+     * - Rectángulo exterior negro (borde del ladrillo)
+     * - Rectángulo interior blanco (crea efecto de borde/relieve)
+     * Esto crea un ladrillo con apariencia de marco
+     */
     method void draw() {
-        if (active) {
+        if (active) {  // Solo dibuja si el ladrillo no ha sido destruido
+            // Dibuja el rectángulo exterior negro (cuerpo principal)
             do Screen.setColor(true);
             do Screen.drawRectangle(x, y, x + width, y + height);
-            // Dibuja borde interior
+            
+            // Dibuja el borde interior blanco (efecto de relieve/marco)
             do Screen.setColor(false);
+            // Rectángulo interior 1 píxel más pequeño en cada lado
             do Screen.drawRectangle(x + 1, y + 1, x + width - 1, y + height - 1);
         }
         return;
     }
     
-    /** Destruye el ladrillo */
+    /** 
+     * Destruye el ladrillo
+     * Marca el ladrillo como inactivo y lo borra de la pantalla
+     * Se llama cuando la bola colisiona con el ladrillo
+     */
     method void destroy() {
-        if (active) {
-            let active = false;
+        if (active) {  // Solo destruye si el ladrillo está activo
+            let active = false;  // Marca el ladrillo como destruido
+            // Borra el ladrillo dibujando un rectángulo blanco sobre él
             do Screen.setColor(false);
             do Screen.drawRectangle(x, y, x + width, y + height);
         }
         return;
     }
     
-    /** Verifica colisión con la bola */
+    /** 
+     * Verifica colisión entre el ladrillo y la bola
+     * Parámetros:
+     *   ball - Objeto Ball con el que verificar la colisión
+     * 
+     * Algoritmo de detección de colisión:
+     * 1. Verifica si el ladrillo está activo (si no, no puede colisionar)
+     * 2. Obtiene la posición y radio de la bola
+     * 3. Verifica colisiones verticales (desde arriba o abajo del ladrillo)
+     * 4. Verifica colisiones horizontales (desde los lados del ladrillo)
+     * 5. Si hay colisión: hace rebotar la bola y destruye el ladrillo
+     * 
+     * Retorna true si hay colisión, false si no la hay
+     */
     method boolean checkCollision(Ball ball) {
         var int ballX, ballY, ballRadius;
         var boolean hit;
         
+        // Si el ladrillo está inactivo (destruido), no puede colisionar
         if (~active) {
             return false;
         }
         
-        let ballX = ball.getX();
-        let ballY = ball.getY();
-        let ballRadius = ball.getRadius();
-        let hit = false;
+        // Obtiene las propiedades de la bola
+        let ballX = ball.getX();           // Centro X de la bola
+        let ballY = ball.getY();           // Centro Y de la bola
+        let ballRadius = ball.getRadius(); // Radio de la bola
+        let hit = false;                   // Asume que no hay colisión inicialmente                   // Asume que no hay colisión inicialmente
         
-        // Verifica colisión desde arriba o abajo
+        // ========== DETECCIÓN DE COLISIONES VERTICALES ==========
+        // Verifica si la bola está alineada horizontalmente con el ladrillo
         if ((ballX > x) & (ballX < (x + width))) {
+            // Colisión desde ARRIBA: borde inferior de la bola toca el tope del ladrillo
             if (((ballY + ballRadius) > y) & ((ballY + ballRadius) < (y + height + 5))) {
-                do ball.bounceY();
-                let hit = true;
+                do ball.bounceY();  // Rebota verticalmente (invierte velocidad Y)
+                let hit = true;     // Marca que hubo colisión
             }
+            // Colisión desde ABAJO: borde superior de la bola toca el fondo del ladrillo
             if (((ballY - ballRadius) < (y + height)) & ((ballY - ballRadius) > (y - 5))) {
-                do ball.bounceY();
-                let hit = true;
+                do ball.bounceY();  // Rebota verticalmente (invierte velocidad Y)
+                let hit = true;     // Marca que hubo colisión
             }
         }
         
-        // Verifica colisión desde los lados
+        // ========== DETECCIÓN DE COLISIONES HORIZONTALES ==========
+        // Verifica si la bola está alineada verticalmente con el ladrillo
         if ((ballY > y) & (ballY < (y + height))) {
+            // Colisión desde la IZQUIERDA: borde derecho de la bola toca el lado izquierdo del ladrillo
             if (((ballX + ballRadius) > x) & ((ballX + ballRadius) < (x + width + 5))) {
-                do ball.bounceX();
-                let hit = true;
+                do ball.bounceX();  // Rebota horizontalmente (invierte velocidad X)
+                let hit = true;     // Marca que hubo colisión
             }
+            // Colisión desde la DERECHA: borde izquierdo de la bola toca el lado derecho del ladrillo
             if (((ballX - ballRadius) < (x + width)) & ((ballX - ballRadius) > (x - 5))) {
-                do ball.bounceX();
-                let hit = true;
+                do ball.bounceX();  // Rebota horizontalmente (invierte velocidad X)
+                let hit = true;     // Marca que hubo colisión
             }
         }
         
+        // Si hubo colisión (desde cualquier dirección), destruye el ladrillo
         if (hit) {
-            do destroy();
+            do destroy();  // Elimina el ladrillo y lo borra de la pantalla
         }
         
-        return hit;
+        return hit;  // Retorna si hubo o no colisión
     }
     
-    /** Obtiene la posición X central del ladrillo */
+    /** 
+     * Obtiene la coordenada X del centro del ladrillo
+     * Útil para posicionar bombas que caen desde el centro del ladrillo destruido
+     * 
+     * Retorna la posición X central del ladrillo
+     */
     method int getCenterX() {
-        return x + (width / 2);
+        return x + (width / 2);  // Centro = posición inicial + mitad del ancho
     }
     
-    /** Obtiene la posición Y inferior del ladrillo */
+    /** 
+     * Obtiene la coordenada Y del borde inferior del ladrillo
+     * Útil para posicionar bombas que comienzan a caer desde abajo del ladrillo
+     * 
+     * Retorna la posición Y inferior del ladrillo
+     */
     method int getBottomY() {
-        return y + height;
+        return y + height;  // Borde inferior = posición inicial + altura total
     }
     
-    /** Verifica si el ladrillo está activo */
+    /** 
+     * Verifica si el ladrillo está activo (visible y colisionable)
+     * Útil para contar cuántos ladrillos quedan o verificar condición de victoria
+     * 
+     * Retorna true si el ladrillo existe, false si fue destruido
+     */
     method boolean isActive() {
-        return active;
+        return active;  // Retorna el estado actual del ladrillo
     }
 }

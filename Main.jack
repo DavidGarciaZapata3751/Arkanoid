@@ -1,14 +1,38 @@
 // Main.jack
 // Punto de entrada del juego Arkanoid
+// Esta clase contiene el método main() que inicia la ejecución del programa
 
 class Main {
+    /** 
+     * Función principal del programa
+     * Es el punto de entrada de la aplicación Jack
+     * 
+     * Flujo de ejecución:
+     * 1. Crea una instancia del juego (ArkanoidGame)
+     * 2. Ejecuta el loop principal del juego (game.run())
+     * 3. Libera la memoria del juego cuando termina (game.dispose())
+     * 
+     * El juego termina cuando:
+     * - El jugador presiona 'Q' para salir
+     * - El jugador destruye todos los ladrillos (victoria)
+     * - El jugador pierde todas sus vidas (derrota)
+     */
     function void main() {
-        var ArkanoidGame game;
+        var ArkanoidGame game;  // Variable que contendrá la instancia del juego
         
+        // Crea una nueva instancia del juego Arkanoid
+        // Esto inicializa la paleta, bola, ladrillos, bombas y el estado del juego
         let game = ArkanoidGame.new();
+        
+        // Ejecuta el loop principal del juego
+        // Este método se ejecuta hasta que el juego termina
+        // Maneja la entrada del jugador, actualiza la física y verifica condiciones de victoria/derrota
         do game.run();
+        
+        // Libera toda la memoria utilizada por el juego
+        // Limpia los objetos: paleta, bola, ladrillos, bombas y arrays
         do game.dispose();
         
-        return;
+        return;  // Finaliza la ejecución del programa
     }
 }

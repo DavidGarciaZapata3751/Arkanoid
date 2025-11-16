@@ -1,97 +1,179 @@
 // Paddle.jack
 // Representa la paleta controlada por el jugador
+// La paleta se mueve horizontalmente en la parte inferior de la pantalla
+// Rebota la bola y puede reducir su tamaño como mecánica de dificultad progresiva
 
 class Paddle {
-    field int x, y;           // Posición
-    field int width, height;  // Dimensiones
-    field int speed;          // Velocidad de movimiento
-    field int minWidth;       // Ancho mínimo
-    field int shrinkAmount;   // Cantidad a reducir
+    // Propiedades de posición
+    field int x, y;           // Coordenadas de la esquina superior izquierda de la paleta
     
-    /** Constructor */
+    // Propiedades de dimensiones
+    field int width, height;  // Ancho y alto de la paleta en píxeles
+    
+    // Propiedades de movimiento
+    field int speed;          // Velocidad de desplazamiento horizontal (píxeles por movimiento)
+    
+    // Propiedades de reducción de tamaño
+    field int minWidth;       // Ancho mínimo permitido (evita que la paleta sea demasiado pequeña)
+    field int shrinkAmount;   // Cantidad de píxeles a reducir cada vez que toca la bola
+    
+    /** 
+     * Constructor de la paleta
+     * Parámetros:
+     *   Ax - Coordenada X inicial (típicamente cerca del centro: 220)
+     *   Ay - Coordenada Y inicial (parte inferior de la pantalla: 230)
+     *   Awidth - Ancho inicial de la paleta en píxeles (típicamente 60)
+     *   Aheight - Alto de la paleta en píxeles (típicamente 8)
+     * 
+     * Configuración:
+     * - Velocidad de movimiento: 6 píxeles por tecla presionada
+     * - Ancho mínimo: 20 píxeles (no puede ser más pequeña)
+     * - Reducción: 3 píxeles por cada rebote de la bola
+     */
     constructor Paddle new(int Ax, int Ay, int Awidth, int Aheight) {
-        let x = Ax;
-        let y = Ay;
-        let width = Awidth;
-        let height = Aheight;
-        let speed = 6;
-        let minWidth = 20;      // Ancho mínimo permitido
-        let shrinkAmount = 3;   // Reduce 3 píxeles cada vez
+        let x = Ax;          // Establece la posición X inicial
+        let y = Ay;          // Establece la posición Y inicial
+        let width = Awidth;  // Establece el ancho inicial
+        let height = Aheight; // Establece el alto
+        let speed = 6;       // Velocidad de desplazamiento: 6 píxeles por movimiento
+        let minWidth = 20;   // Ancho mínimo permitido para evitar imposibilidad de juego
+        let shrinkAmount = 3; // Reduce 3 píxeles del ancho cada vez que la bola rebota
         
-        do draw();
-        return this;
+        do draw();           // Dibuja la paleta en su posición inicial
+        return this;         // Retorna la instancia creada
     }
     
-    /** Destructor */
+    /** 
+     * Destructor de la paleta
+     * Libera la memoria ocupada por el objeto Paddle
+     */
     method void dispose() {
-        do Memory.deAlloc(this);
+        do Memory.deAlloc(this);  // Libera la memoria del objeto
         return;
     }
     
-    /** Dibuja la paleta */
+    /** 
+     * Dibuja la paleta en la pantalla
+     * Representa la paleta como un rectángulo negro sólido
+     */
     method void draw() {
-        do Screen.setColor(true);
+        do Screen.setColor(true);  // Activa el color negro
+        // Dibuja un rectángulo desde (x,y) hasta (x+width, y+height)
         do Screen.drawRectangle(x, y, x + width, y + height);
         return;
     }
     
-    /** Borra la paleta */
+    /** 
+     * Borra la paleta de la pantalla
+     * Dibuja un rectángulo blanco sobre la posición actual
+     * Se llama antes de mover o redimensionar la paleta para evitar rastros visuales
+     */
     method void erase() {
-        do Screen.setColor(false);
+        do Screen.setColor(false);  // Activa el color blanco
+        // Dibuja un rectángulo blanco (borra la paleta)
         do Screen.drawRectangle(x, y, x + width, y + height);
         return;
     }
     
-    /** Mueve la paleta a la izquierda */
+    /** 
+     * Mueve la paleta hacia la izquierda
+     * Se llama cuando el jugador presiona la tecla de flecha izquierda (código 130)
+     * 
+     * Proceso:
+     * 1. Verifica que hay espacio suficiente a la izquierda (x > speed)
+     * 2. Borra la paleta de su posición actual
+     * 3. Reduce la coordenada X según la velocidad
+     * 4. Redibuja la paleta en la nueva posición
+     * 
+     * Si está en el borde izquierdo, no se mueve (evita salir de pantalla)
+     */
     method void moveLeft() {
-        if (x > speed) {
-            do erase();
-            let x = x - speed;
-            do draw();
+        if (x > speed) {  // Verifica que no se salga del borde izquierdo (x=0)
+            do erase();        // Borra la paleta de su posición actual
+            let x = x - speed; // Mueve la posición X hacia la izquierda
+            do draw();         // Dibuja la paleta en la nueva posición
         }
         return;
     }
     
-    /** Mueve la paleta a la derecha */
+    /** 
+     * Mueve la paleta hacia la derecha
+     * Se llama cuando el jugador presiona la tecla de flecha derecha (código 132)
+     * 
+     * Proceso:
+     * 1. Verifica que hay espacio suficiente a la derecha
+     * 2. Borra la paleta de su posición actual
+     * 3. Aumenta la coordenada X según la velocidad
+     * 4. Redibuja la paleta en la nueva posición
+     * 
+     * Si está en el borde derecho, no se mueve (evita salir de pantalla)
+     * La pantalla tiene 512 píxeles de ancho (0-511)
+     */
     method void moveRight() {
-        if ((x + width + speed) < 512) {
-            do erase();
-            let x = x + speed;
-            do draw();
+        if ((x + width + speed) < 512) {  // Verifica que no se salga del borde derecho
+            do erase();        // Borra la paleta de su posición actual
+            let x = x + speed; // Mueve la posición X hacia la derecha
+            do draw();         // Dibuja la paleta en la nueva posición
         }
         return;
     }
     
-    /** Obtiene la posición X */
+    /** 
+     * Obtiene la coordenada X de la paleta (esquina superior izquierda)
+     * Útil para verificar colisiones con la bola y las bombas
+     */
     method int getX() {
-        return x;
+        return x;  // Retorna la posición horizontal actual
     }
     
-    /** Obtiene la posición Y */
+    /** 
+     * Obtiene la coordenada Y de la paleta (borde superior)
+     * Útil para verificar colisiones con la bola y las bombas
+     */
     method int getY() {
-        return y;
+        return y;  // Retorna la posición vertical actual
     }
     
-    /** Obtiene el ancho */
+    /** 
+     * Obtiene el ancho actual de la paleta en píxeles
+     * Importante porque el ancho cambia (se reduce) durante el juego
+     * Necesario para cálculos de colisión
+     */
     method int getWidth() {
-        return width;
+        return width;  // Retorna el ancho actual (puede ser menor que el inicial)
     }
     
-    /** Obtiene la altura */
+    /** 
+     * Obtiene el alto de la paleta en píxeles
+     * Necesario para cálculos de colisión con la bola y bombas
+     */
     method int getHeight() {
-        return height;
+        return height;  // Retorna el alto de la paleta
     }
     
-    /** Reduce el tamaño de la paleta */
+    /** 
+     * Reduce el tamaño de la paleta
+     * Se llama cada vez que la bola rebota en la paleta
+     * Aumenta la dificultad del juego progresivamente
+     * 
+     * Proceso:
+     * 1. Verifica que el ancho actual sea mayor que el mínimo permitido
+     * 2. Borra la paleta con su tamaño actual
+     * 3. Reduce el ancho según shrinkAmount (3 píxeles)
+     * 4. Verifica que no sea menor que minWidth (20 píxeles)
+     * 5. Redibuja la paleta con el nuevo tamaño (más pequeña)
+     * 
+     * La paleta nunca será menor a 20 píxeles para mantener el juego jugable
+     */
     method void shrink() {
-        if (width > minWidth) {
-            do erase();
-            let width = width - shrinkAmount;
-            // Asegura que no sea menor que el mínimo
+        if (width > minWidth) {  // Solo reduce si es mayor que el mínimo
+            do erase();               // Borra la paleta con el tamaño actual
+            let width = width - shrinkAmount;  // Reduce el ancho en 3 píxeles
+            // Asegura que no sea menor que el mínimo permitido
             if (width < minWidth) {
-                let width = minWidth;
+                let width = minWidth;  // Ajusta al ancho mínimo si se pasó
             }
-            do draw();
+            do draw();  // Redibuja la paleta con el nuevo tamaño reducido
         }
         return;
     }

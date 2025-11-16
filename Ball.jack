@@ -1,142 +1,223 @@
 // Ball.jack
-// Representa la bola del juego
+// Representa la bola del juego Arkanoid
+// La bola rebota en paredes, paleta y destruye ladrillos al impactarlos
 
 class Ball {
-    field int x, y;           // Posición
-    field int radius;         // Radio
-    field int velocityX;      // Velocidad en X
-    field int velocityY;      // Velocidad en Y
+    // Propiedades de posición
+    field int x, y;           // Coordenadas del centro de la bola en la pantalla
     
-    /** Constructor */
+    // Propiedades físicas
+    field int radius;         // Radio de la bola en píxeles (tamaño)
+    
+    // Propiedades de movimiento
+    field int velocityX;      // Velocidad horizontal (píxeles por frame)
+    field int velocityY;      // Velocidad vertical (píxeles por frame, negativo = arriba)
+    
+    /** 
+     * Constructor de la bola
+     * Parámetros:
+     *   Ax - Coordenada X inicial (centro de la bola)
+     *   Ay - Coordenada Y inicial (centro de la bola)
+     *   Aradius - Radio de la bola en píxeles
+     * 
+     * Inicializa la bola con velocidad inicial diagonal hacia arriba-derecha
+     */
     constructor Ball new(int Ax, int Ay, int Aradius) {
-        let x = Ax;
-        let y = Ay;
-        let radius = Aradius;
-        let velocityX = 2;
-        let velocityY = -2;
+        let x = Ax;              // Establece la posición X inicial
+        let y = Ay;              // Establece la posición Y inicial
+        let radius = Aradius;    // Establece el tamaño de la bola
+        let velocityX = 2;       // Velocidad inicial: 2 píxeles/frame hacia la derecha
+        let velocityY = -2;      // Velocidad inicial: 2 píxeles/frame hacia arriba (negativo)
         
-        do draw();
-        return this;
+        do draw();               // Dibuja la bola en su posición inicial
+        return this;             // Retorna la instancia creada
     }
     
-    /** Destructor */
+    /** 
+     * Destructor de la bola
+     * Libera la memoria ocupada por el objeto Ball
+     */
     method void dispose() {
-        do Memory.deAlloc(this);
+        do Memory.deAlloc(this);  // Libera la memoria del objeto
         return;
     }
     
-    /** Dibuja la bola */
+    /** 
+     * Dibuja la bola en la pantalla
+     * Usa color negro (true) para hacer visible la bola
+     */
     method void draw() {
-        do Screen.setColor(true);
-        do Screen.drawCircle(x, y, radius);
+        do Screen.setColor(true);          // Activa el color negro
+        do Screen.drawCircle(x, y, radius); // Dibuja un círculo en la posición actual
         return;
     }
     
-    /** Borra la bola */
+    /** 
+     * Borra la bola de la pantalla
+     * Usa color blanco (false) para "pintar" sobre la bola anterior
+     * Se llama antes de mover la bola para evitar dejar rastro
+     */
     method void erase() {
-        do Screen.setColor(false);
-        do Screen.drawCircle(x, y, radius);
+        do Screen.setColor(false);         // Activa el color blanco
+        do Screen.drawCircle(x, y, radius); // Dibuja un círculo blanco (borra)
         return;
     }
     
-    /** Mueve la bola */
+    /** 
+     * Mueve la bola según su velocidad actual
+     * Proceso:
+     * 1. Borra la bola de su posición actual
+     * 2. Actualiza las coordenadas sumando la velocidad
+     * 3. Dibuja la bola en la nueva posición
+     * 
+     * Se llama en cada frame del loop principal del juego
+     */
     method void move() {
-        do erase();
-        let x = x + velocityX;
-        let y = y + velocityY;
-        do draw();
+        do erase();                // Borra la bola de su posición actual
+        let x = x + velocityX;     // Actualiza posición X (suma velocidad horizontal)
+        let y = y + velocityY;     // Actualiza posición Y (suma velocidad vertical)
+        do draw();                 // Dibuja la bola en la nueva posición
         return;
     }
     
-    /** Invierte la velocidad horizontal */
+    /** 
+     * Invierte la velocidad horizontal (rebote horizontal)
+     * Si iba a la derecha (+), ahora va a la izquierda (-) y viceversa
+     * Se llama cuando la bola colisiona con paredes laterales
+     */
     method void bounceX() {
-        let velocityX = -velocityX;
+        let velocityX = -velocityX;  // Invierte el signo de la velocidad horizontal
         return;
     }
     
-    /** Invierte la velocidad vertical */
+    /** 
+     * Invierte la velocidad vertical (rebote vertical)
+     * Si iba hacia arriba (-), ahora va hacia abajo (+) y viceversa
+     * Se llama cuando la bola colisiona con techo, paleta o ladrillos
+     */
     method void bounceY() {
-        let velocityY = -velocityY;
+        let velocityY = -velocityY;  // Invierte el signo de la velocidad vertical
         return;
     }
     
-    /** Verifica colisión con bordes de pantalla */
+    /** 
+     * Verifica colisión de la bola con los bordes de la pantalla
+     * Comprueba los tres bordes (izquierdo, derecho y superior)
+     * NO verifica el borde inferior (si cae, el jugador pierde vida)
+     * 
+     * Retorna true si hay colisión, false si no la hay
+     */
     method boolean checkWallCollision() {
-        // Borde izquierdo
+        // Verifica colisión con el borde izquierdo (x=0)
         if (x < (radius + 1)) {
-            do bounceX();
-            return true;
+            do bounceX();    // Rebota horizontalmente
+            return true;     // Indica que hubo colisión
         }
         
-        // Borde derecho
+        // Verifica colisión con el borde derecho (x=511 para pantalla 512x256)
         if (x > (511 - radius)) {
-            do bounceX();
-            return true;
+            do bounceX();    // Rebota horizontalmente
+            return true;     // Indica que hubo colisión
         }
         
-        // Borde superior
+        // Verifica colisión con el borde superior (y=0)
         if (y < (radius + 1)) {
-            do bounceY();
-            return true;
+            do bounceY();    // Rebota verticalmente
+            return true;     // Indica que hubo colisión
         }
         
-        return false;
+        return false;  // No hay colisión con ningún borde
     }
     
-    /** Verifica colisión con la paleta */
+    /** 
+     * Verifica colisión entre la bola y la paleta
+     * Parámetros:
+     *   paddle - Objeto Paddle con el que verificar la colisión
+     * 
+     * Algoritmo:
+     * 1. Obtiene las dimensiones y posición de la paleta
+     * 2. Verifica si la parte inferior de la bola alcanza la altura de la paleta
+     * 3. Verifica si horizontalmente la bola está dentro del ancho de la paleta
+     * 4. Si hay colisión, hace rebotar la bola hacia arriba
+     * 
+     * Retorna true si hay colisión, false si no la hay
+     */
     method boolean checkPaddleCollision(Paddle paddle) {
         var int paddleX, paddleY, paddleWidth, paddleHeight;
         var boolean collision;
         
-        let paddleX = paddle.getX();
-        let paddleY = paddle.getY();
-        let paddleWidth = paddle.getWidth();
-        let paddleHeight = paddle.getHeight();
+        // Obtiene las propiedades de la paleta
+        let paddleX = paddle.getX();           // Posición X (esquina izquierda)
+        let paddleY = paddle.getY();           // Posición Y (borde superior)
+        let paddleWidth = paddle.getWidth();   // Ancho de la paleta
+        let paddleHeight = paddle.getHeight(); // Alto de la paleta
         
-        let collision = false;
+        let collision = false;  // Asume que no hay colisión inicialmente
         
         // Verifica si la bola está a la altura de la paleta
-        if ((y + radius) > paddleY) {
-            if ((y + radius) < (paddleY + paddleHeight + 3)) {
-                // Verifica si está dentro del ancho de la paleta
+        if ((y + radius) > paddleY) {  // Si el borde inferior de la bola está más abajo que el tope de la paleta
+            if ((y + radius) < (paddleY + paddleHeight + 3)) {  // Si está dentro del rango vertical (+3 de tolerancia)
+                // Verifica si está dentro del ancho de la paleta (colisión horizontal)
                 if ((x > paddleX) & (x < (paddleX + paddleWidth))) {
-                    do bounceY();
-                    let collision = true;
+                    do bounceY();          // Hace rebotar la bola hacia arriba
+                    let collision = true;  // Marca que hubo colisión
                 }
             }
         }
         
-        return collision;
+        return collision;  // Retorna si hubo o no colisión
     }
     
-    /** Verifica si la bola cayó fuera de la pantalla */
+    /** 
+     * Verifica si la bola cayó fuera de la pantalla (por debajo de la paleta)
+     * La pantalla tiene 256 píxeles de alto, y 250 está cerca del límite inferior
+     * 
+     * Retorna true si la bola cayó (jugador pierde vida), false si sigue en juego
+     */
     method boolean isFallen() {
-        return y > 250;
+        return y > 250;  // True si la coordenada Y supera 250 píxeles
     }
     
-    /** Obtiene la posición X */
+    /** 
+     * Obtiene la coordenada X del centro de la bola
+     * Útil para verificar colisiones con otros objetos
+     */
     method int getX() {
-        return x;
+        return x;  // Retorna la posición horizontal actual
     }
     
-    /** Obtiene la posición Y */
+    /** 
+     * Obtiene la coordenada Y del centro de la bola
+     * Útil para verificar colisiones con otros objetos
+     */
     method int getY() {
-        return y;
+        return y;  // Retorna la posición vertical actual
     }
     
-    /** Obtiene el radio */
+    /** 
+     * Obtiene el radio de la bola en píxeles
+     * Necesario para cálculos de colisión y detección de bordes
+     */
     method int getRadius() {
-        return radius;
+        return radius;  // Retorna el tamaño de la bola
     }
     
-    /** Reinicia la posición de la bola */
+    /** 
+     * Reinicia la posición y velocidad de la bola
+     * Parámetros:
+     *   newX - Nueva coordenada X (típicamente el centro de la pantalla: 256)
+     *   newY - Nueva coordenada Y (posición de inicio)
+     * 
+     * Se llama cuando el jugador pierde una vida pero le quedan vidas restantes
+     * Resetea la bola al centro con la velocidad inicial
+     */
     method void reset(int newX, int newY) {
-        do erase();
-        let x = newX;
-        let y = newY;
-        let velocityX = 2;
-        let velocityY = -2;
-        do draw();
+        do erase();            // Borra la bola de su posición actual
+        let x = newX;          // Establece la nueva posición X
+        let y = newY;          // Establece la nueva posición Y
+        let velocityX = 2;     // Resetea velocidad horizontal a 2 px/frame (derecha)
+        let velocityY = -2;    // Resetea velocidad vertical a -2 px/frame (arriba)
+        do draw();             // Dibuja la bola en la nueva posición
         return;
     }
 }

@@ -1,140 +1,197 @@
 // ArkanoidGame.jack
 // Lógica principal del juego Arkanoid
+// Esta clase coordina todos los elementos del juego y maneja el loop principal
 
 class ArkanoidGame {
-    field Paddle paddle;
-    field Ball ball;
-    field Array bricks;
-    field Array bombs;
-    field int numBricks;
-    field int maxBombs;
-    field int score;
-    field int lives;
-    field boolean gameOver;
+    // Objetos principales del juego
+    field Paddle paddle;        // La paleta que controla el jugador
+    field Ball ball;            // La bola que rebota y destruye ladrillos
+    field Array bricks;         // Array que contiene todos los ladrillos del nivel
+    field Array bombs;          // Array que almacena las bombas activas que caen
     
-    /** Constructor */
+    // Contadores y configuración
+    field int numBricks;        // Número total de ladrillos en el juego (40 = 5x8)
+    field int maxBombs;         // Capacidad máxima del array de bombas (40)
+    field int score;            // Puntuación actual del jugador
+    field int lives;            // Vidas restantes del jugador
+    field boolean gameOver;     // Flag que indica si el juego ha terminado
+    
+    /** 
+     * Constructor del juego
+     * Inicializa todos los componentes: paleta, bola, ladrillos, bombas
+     * y configura el estado inicial del juego (puntos, vidas)
+     */
     constructor ArkanoidGame new() {
         var int i, j, brickX, brickY, brickIndex;
         
+        // Crea la paleta en la posición inicial (x=220, y=230, ancho=60, alto=8)
         let paddle = Paddle.new(220, 230, 60, 8);
+        
+        // Crea la bola en el centro de la pantalla (x=256, y=200) con radio 4
         let ball = Ball.new(256, 200, 4);
         
-        // Crear ladrillos (5 filas x 8 columnas)
+        // Crear ladrillos (5 filas x 8 columnas = 40 ladrillos totales)
         let numBricks = 40;
-        let bricks = Array.new(numBricks);
-        let brickIndex = 0;
+        let bricks = Array.new(numBricks);  // Reserva espacio para 40 ladrillos
+        let brickIndex = 0;                  // Índice para llenar el array                  // Índice para llenar el array
         
+        // Loop para crear las 5 filas de ladrillos
         let i = 0;
         while (i < 5) {
+            // Loop para crear las 8 columnas de ladrillos por fila
             let j = 0;
             while (j < 8) {
+                // Calcula la posición X del ladrillo (con separación de 62 píxeles)
                 let brickX = 10 + (j * 62);
+                // Calcula la posición Y del ladrillo (con separación de 16 píxeles)
                 let brickY = 20 + (i * 16);
+                // Crea el ladrillo con ancho=58 y alto=12 píxeles
                 let bricks[brickIndex] = Brick.new(brickX, brickY, 58, 12);
-                let brickIndex = brickIndex + 1;
+                let brickIndex = brickIndex + 1;  // Avanza al siguiente índice
                 let j = j + 1;
             }
             let i = i + 1;
         }
         
-        // Crear array para bombas
+        // Crear array para bombas (una por cada ladrillo posible)
         let maxBombs = 40;
-        let bombs = Array.new(maxBombs);
+        let bombs = Array.new(maxBombs);  // Reserva espacio para 40 bombas
+        
+        // Inicializa todas las posiciones del array de bombas como null
         let i = 0;
         while (i < maxBombs) {
-            let bombs[i] = null;
+            let bombs[i] = null;  // Sin bombas activas al inicio
             let i = i + 1;
         }
         
-        let score = 0;
-        let lives = 3;
-        let gameOver = false;
+        // Inicializa el estado del juego
+        let score = 0;           // Puntuación inicial: 0 puntos
+        let lives = 3;           // El jugador comienza con 3 vidas
+        let gameOver = false;    // El juego no ha terminado
         
+        // Dibuja la interfaz de usuario (puntuación y vidas)
         do drawUI();
         
-        return this;
+        return this;  // Retorna la instancia creada
     }
     
-    /** Destructor */
+    /** 
+     * Destructor del juego
+     * Libera toda la memoria utilizada por el juego:
+     * - Paleta y bola
+     * - Todos los ladrillos (activos o destruidos)
+     * - Todas las bombas (activas o inactivas)
+     * - Los arrays y el objeto mismo
+     */
     method void dispose() {
         var int i;
         var Brick brick;
         var Bomb bomb;
         
+        // Libera la memoria de la paleta y la bola
         do paddle.dispose();
         do ball.dispose();
         
+        // Libera la memoria de todos los ladrillos
         let i = 0;
         while (i < numBricks) {
-            let brick = bricks[i];
-            do brick.dispose();
+            let brick = bricks[i];    // Obtiene el ladrillo en posición i
+            do brick.dispose();        // Libera su memoria
             let i = i + 1;
         }
         
+        // Libera la memoria de todas las bombas activas
         let i = 0;
         while (i < maxBombs) {
-            let bomb = bombs[i];
-            if (~(bomb = null)) {
-                do bomb.dispose();
+            let bomb = bombs[i];       // Obtiene la bomba en posición i
+            if (~(bomb = null)) {      // Si la bomba existe (no es null)
+                do bomb.dispose();      // Libera su memoria
             }
             let i = i + 1;
         }
         
-        do bricks.dispose();
-        do bombs.dispose();
-        do Memory.deAlloc(this);
+        // Libera los arrays y el objeto del juego
+        do bricks.dispose();           // Libera el array de ladrillos
+        do bombs.dispose();            // Libera el array de bombas
+        do Memory.deAlloc(this);       // Libera la memoria del objeto ArkanoidGame
         return;
     }
     
-    /** Dibuja la interfaz de usuario */
+    /** 
+     * Dibuja la interfaz de usuario en la parte superior de la pantalla
+     * Muestra la puntuación actual y las vidas restantes
+     */
     method void drawUI() {
-        do Output.moveCursor(0, 0);
-        do Output.printString("Score: ");
-        do Output.printInt(score);
-        do Output.printString("  Lives: ");
-        do Output.printInt(lives);
+        do Output.moveCursor(0, 0);           // Posiciona el cursor en la esquina superior izquierda
+        do Output.printString("Score: ");     // Imprime la etiqueta de puntuación
+        do Output.printInt(score);            // Imprime el valor de la puntuación
+        do Output.printString("  Lives: ");   // Imprime la etiqueta de vidas
+        do Output.printInt(lives);            // Imprime el número de vidas
         return;
     }
     
-    /** Actualiza el puntaje */
+    /** 
+     * Actualiza el puntaje del jugador
+     * Incrementa el puntaje en 10 puntos y actualiza la pantalla
+     * Se llama cada vez que se destruye un ladrillo
+     */
     method void updateScore() {
-        let score = score + 10;
-        do Output.moveCursor(0, 7);
-        do Output.printInt(score);
+        let score = score + 10;      // Suma 10 puntos por ladrillo destruido
+        do Output.moveCursor(0, 7);  // Posiciona el cursor después de "Score: "
+        do Output.printInt(score);   // Imprime el nuevo valor de la puntuación
         return;
     }
     
-    /** Actualiza las vidas */
+    /** 
+     * Actualiza el contador de vidas en la pantalla
+     * Limpia el valor anterior e imprime el nuevo
+     * Se llama cuando el jugador pierde una vida
+     */
     method void updateLives() {
-        do Output.moveCursor(0, 23);
-        do Output.printString("   ");  // Borra el valor anterior con espacios
-        do Output.moveCursor(0, 23);   // Vuelve a posicionar el cursor
-        do Output.printInt(lives);
+        do Output.moveCursor(0, 23);        // Posiciona el cursor después de "Lives: "
+        do Output.printString("   ");       // Borra el valor anterior con espacios
+        do Output.moveCursor(0, 23);        // Vuelve a posicionar el cursor
+        do Output.printInt(lives);          // Imprime el nuevo número de vidas
         return;
     }
     
-    /** Verifica colisiones con todos los ladrillos */
+    /** 
+     * Verifica colisiones de la bola con todos los ladrillos
+     * Cuando hay colisión:
+     * - Incrementa la puntuación
+     * - Crea una bomba que cae desde la posición del ladrillo destruido
+     */
     method void checkBrickCollisions() {
         var int i;
         var Brick brick;
-        var int centerX, bottomY;
+        var int centerX, bottomY;  // Coordenadas para la bomba
         
+        // Recorre todos los ladrillos del juego
         let i = 0;
         while (i < numBricks) {
-            let brick = bricks[i];
-            if (brick.checkCollision(ball)) {
-                do updateScore();
+            let brick = bricks[i];              // Obtiene el ladrillo en posición i
+            if (brick.checkCollision(ball)) {   // Si la bola colisiona con el ladrillo
+                do updateScore();                // Suma puntos al jugador
                 // Crear bomba en la posición del ladrillo destruido
-                let centerX = brick.getCenterX();
-                let bottomY = brick.getBottomY();
-                do createBomb(centerX, bottomY);
+                let centerX = brick.getCenterX();   // Obtiene el centro X del ladrillo
+                let bottomY = brick.getBottomY();   // Obtiene el borde inferior del ladrillo
+                do createBomb(centerX, bottomY);    // Crea la bomba que caerá
             }
             let i = i + 1;
         }
         return;
     }
     
-    /** Crea una nueva bomba */
+    /** 
+     * Crea una nueva bomba en la posición especificada
+     * Parámetros:
+     *   x - Coordenada X inicial de la bomba
+     *   y - Coordenada Y inicial de la bomba
+     * 
+     * Busca un espacio disponible en el array de bombas:
+     * - Si encuentra un slot null, crea la bomba ahí
+     * - Si encuentra una bomba inactiva, la reemplaza
+     */
     method void createBomb(int x, int y) {
         var int i;
         var Bomb bomb;
@@ -142,38 +199,46 @@ class ArkanoidGame {
         // Busca un slot vacío en el array de bombas
         let i = 0;
         while (i < maxBombs) {
-            let bomb = bombs[i];
-            if (bomb = null) {
-                let bombs[i] = Bomb.new(x, y);
+            let bomb = bombs[i];              // Obtiene la bomba en posición i
+            if (bomb = null) {                 // Si el slot está vacío
+                let bombs[i] = Bomb.new(x, y); // Crea una nueva bomba
                 return;
             }
-            if (~(bomb.isActive())) {
-                do bomb.dispose();
-                let bombs[i] = Bomb.new(x, y);
+            if (~(bomb.isActive())) {          // Si la bomba ya no está activa
+                do bomb.dispose();              // Libera la memoria de la bomba vieja
+                let bombs[i] = Bomb.new(x, y);  // Crea una nueva bomba en su lugar
                 return;
             }
             let i = i + 1;
         }
-        return;
+        return;  // Si no hay espacio disponible, no crea la bomba
     }
     
-    /** Actualiza todas las bombas */
+    /** 
+     * Actualiza todas las bombas activas del juego
+     * Para cada bomba:
+     * - La hace caer si está activa
+     * - Verifica si colisiona con la paleta
+     * - Si hay colisión: el jugador pierde una vida
+     * - Si no quedan vidas: el juego termina
+     */
     method void updateBombs() {
         var int i;
         var Bomb bomb;
         
+        // Recorre todas las posiciones del array de bombas
         let i = 0;
         while (i < maxBombs) {
-            let bomb = bombs[i];
-            if (~(bomb = null)) {
-                if (bomb.isActive()) {
-                    do bomb.fall();
+            let bomb = bombs[i];           // Obtiene la bomba en posición i
+            if (~(bomb = null)) {          // Si hay una bomba en este slot
+                if (bomb.isActive()) {      // Si la bomba todavía está activa
+                    do bomb.fall();         // Actualiza la posición de la bomba (cae)
                     // Verifica colisión con la paleta
                     if (bomb.checkPaddleCollision(paddle)) {
-                        let lives = lives - 1;
-                        do updateLives();
-                        if (lives < 1) {
-                            let gameOver = true;
+                        let lives = lives - 1;      // El jugador pierde una vida
+                        do updateLives();            // Actualiza el contador en pantalla
+                        if (lives < 1) {             // Si no quedan vidas
+                            let gameOver = true;     // El juego termina
                         }
                     }
                 }
@@ -183,112 +248,139 @@ class ArkanoidGame {
         return;
     }
     
-    /** Verifica si todos los ladrillos han sido destruidos */
+    /** 
+     * Verifica si todos los ladrillos han sido destruidos
+     * Retorna true si todos los ladrillos están destruidos (condición de victoria)
+     * Retorna false si encuentra al menos un ladrillo activo
+     */
     method boolean allBricksDestroyed() {
         var int i;
         var Brick brick;
         
+        // Recorre todos los ladrillos del juego
         let i = 0;
         while (i < numBricks) {
-            let brick = bricks[i];
-            if (brick.isActive()) {
-                return false;
+            let brick = bricks[i];       // Obtiene el ladrillo en posición i
+            if (brick.isActive()) {      // Si el ladrillo todavía existe
+                return false;             // Aún quedan ladrillos, no hay victoria
             }
             let i = i + 1;
         }
-        return true;
+        return true;  // Todos los ladrillos han sido destruidos
     }
     
-    /** Maneja la pérdida de una vida */
+    /** 
+     * Maneja la pérdida de una vida cuando la bola cae
+     * - Decrementa el contador de vidas
+     * - Si quedan vidas: resetea la bola al centro y pausa 1 segundo
+     * - Si no quedan vidas: marca el juego como terminado
+     */
     method void loseLife() {
-        let lives = lives - 1;
-        do updateLives();
+        let lives = lives - 1;       // Reduce el contador de vidas
+        do updateLives();            // Actualiza el contador en pantalla
         
-        if (lives > 0) {
-            do ball.reset(256, 200);
-            do Sys.wait(1000);
-        } else {
-            let gameOver = true;
+        if (lives > 0) {             // Si el jugador aún tiene vidas
+            do ball.reset(256, 200);  // Resetea la bola al centro de la pantalla
+            do Sys.wait(1000);        // Pausa de 1 segundo antes de continuar
+        } else {                      // Si ya no quedan vidas
+            let gameOver = true;      // El juego termina (derrota)
         }
         return;
     }
     
-    /** Muestra mensaje de victoria */
+    /** 
+     * Muestra el mensaje de victoria en el centro de la pantalla
+     * Se llama cuando el jugador destruye todos los ladrillos
+     */
     method void showWinMessage() {
-        do Output.moveCursor(11, 22);
-        do Output.printString("YOU WIN!");
-        do Output.moveCursor(12, 18);
-        do Output.printString("Final Score: ");
-        do Output.printInt(score);
+        do Output.moveCursor(11, 22);           // Posiciona el cursor en el centro
+        do Output.printString("YOU WIN!");      // Muestra el mensaje de victoria
+        do Output.moveCursor(12, 18);           // Siguiente línea, centrado
+        do Output.printString("Final Score: ");  // Muestra la etiqueta
+        do Output.printInt(score);              // Muestra la puntuación final
         return;
     }
     
-    /** Muestra mensaje de derrota */
+    /** 
+     * Muestra el mensaje de derrota en el centro de la pantalla
+     * Se llama cuando el jugador pierde todas sus vidas
+     */
     method void showGameOverMessage() {
-        do Output.moveCursor(11, 21);
-        do Output.printString("GAME OVER");
-        do Output.moveCursor(12, 18);
-        do Output.printString("Final Score: ");
-        do Output.printInt(score);
+        do Output.moveCursor(11, 21);           // Posiciona el cursor en el centro
+        do Output.printString("GAME OVER");     // Muestra el mensaje de derrota
+        do Output.moveCursor(12, 18);           // Siguiente línea, centrado
+        do Output.printString("Final Score: ");  // Muestra la etiqueta
+        do Output.printInt(score);              // Muestra la puntuación final
         return;
     }
     
-    /** Loop principal del juego */
+    /** 
+     * Loop principal del juego
+     * Maneja:
+     * - Entrada del teclado (movimiento de paleta y salida)
+     * - Actualización de la bola y las bombas
+     * - Detección de colisiones
+     * - Condiciones de victoria y derrota
+     * 
+     * El juego se ejecuta a aproximadamente 50 FPS (espera de 20ms)
+     */
     method void run() {
-        var char key;
-        var boolean exit;
+        var char key;         // Tecla presionada por el usuario
+        var boolean exit;     // Flag para salir del loop principal
         
-        let exit = false;
+        let exit = false;     // Inicialmente no salir
         
+        // Loop principal del juego (se ejecuta hasta que exit sea true)
         while (~exit) {
-            // Espera para controlar la velocidad del juego
+            // Espera de 20ms para controlar la velocidad del juego (~50 FPS)
             do Sys.wait(20);
             
-            // Lee entrada del teclado
+            // Lee la entrada del teclado del usuario
             let key = Keyboard.keyPressed();
             
-            if (key = 81) {  // Q para salir
+            // Procesa los controles del jugador
+            if (key = 81) {  // Q - Sale del juego
                 let exit = true;
             }
-            if (key = 130) {  // Flecha izquierda
+            if (key = 130) {  // Flecha izquierda - Mueve la paleta a la izquierda
                 do paddle.moveLeft();
             }
-            if (key = 132) {  // Flecha derecha
+            if (key = 132) {  // Flecha derecha - Mueve la paleta a la derecha
                 do paddle.moveRight();
             }
             
-            // Mueve la bola
-            do ball.move();
+            // Actualiza la física del juego
+            do ball.move();           // Mueve la bola según su velocidad y dirección
             
-            // Actualiza las bombas
+            // Actualiza todas las bombas (las hace caer)
             do updateBombs();
             
-            // Verifica colisiones
-            do ball.checkWallCollision();
-            if (ball.checkPaddleCollision(paddle)) {
-                do paddle.shrink();  // Reduce el tamaño cuando toca la paleta
+            // Verifica todas las colisiones
+            do ball.checkWallCollision();  // Rebote de la bola con las paredes
+            if (ball.checkPaddleCollision(paddle)) {  // Colisión bola-paleta
+                do paddle.shrink();  // La paleta se reduce cada vez que la bola la toca
             }
-            do checkBrickCollisions();
+            do checkBrickCollisions();  // Colisiones bola-ladrillos (destruye ladrillos)  // Colisiones bola-ladrillos (destruye ladrillos)
             
-            // Verifica si la bola cayó
+            // Verifica si la bola cayó por debajo de la paleta
             if (ball.isFallen()) {
-                do loseLife();
+                do loseLife();  // El jugador pierde una vida
             }
             
-            // Verifica condiciones de victoria
+            // Verifica condición de victoria: todos los ladrillos destruidos
             if (allBricksDestroyed()) {
-                do showWinMessage();
-                let exit = true;
+                do showWinMessage();  // Muestra mensaje "YOU WIN!"
+                let exit = true;       // Sale del loop principal
             }
             
-            // Verifica condiciones de derrota
+            // Verifica condición de derrota: sin vidas o bomba impactó paleta
             if (gameOver) {
-                do showGameOverMessage();
-                let exit = true;
+                do showGameOverMessage();  // Muestra mensaje "GAME OVER"
+                let exit = true;            // Sale del loop principal
             }
         }
         
-        return;
+        return;  // Fin del método run
     }
 }
 

@@ -1,104 +1,173 @@
 // Bomb.jack
 // Representa una bomba que cae cuando se destruye un ladrillo
+// Las bombas son un peligro adicional: si impactan la paleta, el jugador pierde una vida
 
 class Bomb {
-    field int x, y;           // Posición
-    field int size;           // Tamaño del cuadrado
-    field int speed;          // Velocidad de caída
-    field boolean active;     // Si la bomba está activa
+    // Propiedades de posición
+    field int x, y;           // Coordenadas de la esquina superior izquierda de la bomba
     
-    /** Constructor */
+    // Propiedades visuales
+    field int size;           // Tamaño del cuadrado que representa la bomba (en píxeles)
+    
+    // Propiedades de movimiento
+    field int speed;          // Velocidad de caída (píxeles por frame)
+    
+    // Estado de la bomba
+    field boolean active;     // Indica si la bomba está activa (cayendo) o inactiva (eliminada)
+    
+    /** 
+     * Constructor de la bomba
+     * Parámetros:
+     *   Ax - Coordenada X inicial (generalmente el centro de un ladrillo destruido)
+     *   Ay - Coordenada Y inicial (generalmente el borde inferior de un ladrillo)
+     * 
+     * Inicializa la bomba con tamaño 6x6 píxeles y velocidad de caída de 2 px/frame
+     */
     constructor Bomb new(int Ax, int Ay) {
-        let x = Ax;
-        let y = Ay;
-        let size = 6;
-        let speed = 2;
-        let active = true;
+        let x = Ax;          // Establece la posición X inicial
+        let y = Ay;          // Establece la posición Y inicial
+        let size = 6;        // Tamaño del cuadrado: 6x6 píxeles
+        let speed = 2;       // Velocidad de caída: 2 píxeles por frame
+        let active = true;   // La bomba comienza activa (cayendo)
         
-        do draw();
-        return this;
+        do draw();           // Dibuja la bomba en su posición inicial
+        return this;         // Retorna la instancia creada
     }
     
-    /** Destructor */
+    /** 
+     * Destructor de la bomba
+     * Libera la memoria ocupada por el objeto Bomb
+     */
     method void dispose() {
-        do Memory.deAlloc(this);
+        do Memory.deAlloc(this);  // Libera la memoria del objeto
         return;
     }
     
-    /** Dibuja la bomba */
+    /** 
+     * Dibuja la bomba en la pantalla
+     * Solo dibuja si la bomba está activa
+     * Representa la bomba como un cuadrado negro
+     */
     method void draw() {
-        if (active) {
-            do Screen.setColor(true);
+        if (active) {  // Solo dibuja si la bomba está activa
+            do Screen.setColor(true);  // Activa el color negro
+            // Dibuja un rectángulo desde (x,y) hasta (x+size, y+size)
             do Screen.drawRectangle(x, y, x + size, y + size);
         }
         return;
     }
     
-    /** Borra la bomba */
+    /** 
+     * Borra la bomba de la pantalla
+     * Dibuja un cuadrado blanco sobre la posición actual de la bomba
+     * Se llama antes de mover la bomba para evitar dejar rastro
+     */
     method void erase() {
-        do Screen.setColor(false);
+        do Screen.setColor(false);  // Activa el color blanco
+        // Dibuja un rectángulo blanco (borra la bomba)
         do Screen.drawRectangle(x, y, x + size, y + size);
         return;
     }
     
-    /** Mueve la bomba hacia abajo */
+    /** 
+     * Mueve la bomba hacia abajo (simula la caída por gravedad)
+     * 
+     * Proceso:
+     * 1. Verifica si la bomba está activa
+     * 2. Verifica si va a salir de la pantalla (y > 254)
+     * 3. Si sale de pantalla: borra y desactiva la bomba
+     * 4. Si no sale: borra, actualiza posición Y, y redibuja
+     * 
+     * Se llama en cada frame del loop principal del juego
+     */
     method void fall() {
-        if (active) {
-            // Primero verifica si va a salir de la pantalla
+        if (active) {  // Solo procesa si la bomba está activa
+            // Verifica si la bomba va a salir por el borde inferior de la pantalla
+            // La pantalla tiene 256 píxeles de alto (0-255)
             if ((y + speed + size) > 254) {
-                do erase();  // Borra antes de desactivar
-                let active = false;
+                do erase();           // Borra la bomba antes de desactivar
+                let active = false;   // Desactiva la bomba (ya no cae más)
             } else {
-                do erase();
-                let y = y + speed;
-                do draw();
+                do erase();           // Borra la bomba de su posición actual
+                let y = y + speed;    // Actualiza la posición Y (cae 2 píxeles)
+                do draw();            // Dibuja la bomba en la nueva posición
             }
         }
         return;
     }
     
-    /** Verifica colisión con la paleta */
+    /** 
+     * Verifica colisión entre la bomba y la paleta
+     * Parámetros:
+     *   paddle - Objeto Paddle con el que verificar la colisión
+     * 
+     * Algoritmo de detección de colisión (AABB - Axis-Aligned Bounding Box):
+     * 1. Verifica si la bomba está activa (si no, retorna false)
+     * 2. Obtiene las dimensiones y posición de la paleta
+     * 3. Verifica solapamiento vertical: borde inferior de bomba > tope de paleta
+     * 4. Verifica solapamiento vertical: tope de bomba < fondo de paleta
+     * 5. Verifica solapamiento horizontal: borde derecho de bomba > izquierda de paleta
+     * 6. Verifica solapamiento horizontal: borde izquierdo de bomba < derecha de paleta
+     * 7. Si todas las condiciones se cumplen: hay colisión
+     * 
+     * Si hay colisión: borra la bomba, la desactiva y retorna true
+     * Retorna true si hay colisión, false si no la hay
+     */
     method boolean checkPaddleCollision(Paddle paddle) {
         var int paddleX, paddleY, paddleWidth, paddleHeight;
         var boolean collision;
         
+        // Si la bomba no está activa, no puede colisionar
         if (~active) {
             return false;
         }
         
-        let paddleX = paddle.getX();
-        let paddleY = paddle.getY();
-        let paddleWidth = paddle.getWidth();
-        let paddleHeight = paddle.getHeight();
+        // Obtiene las propiedades de la paleta
+        let paddleX = paddle.getX();           // Posición X (esquina izquierda)
+        let paddleY = paddle.getY();           // Posición Y (borde superior)
+        let paddleWidth = paddle.getWidth();   // Ancho de la paleta
+        let paddleHeight = paddle.getHeight(); // Alto de la paleta
         
-        let collision = false;
+        let collision = false;  // Asume que no hay colisión inicialmente
         
-        // Verifica si la bomba toca la paleta
-        if ((y + size) > paddleY) {
-            if (y < (paddleY + paddleHeight)) {
-                if ((x + size) > paddleX) {
-                    if (x < (paddleX + paddleWidth)) {
-                        do erase();
-                        let active = false;
-                        let collision = true;
+        // Algoritmo de detección de colisión de cajas delimitadoras (AABB)
+        // Verifica si la bomba toca la paleta en el eje vertical
+        if ((y + size) > paddleY) {  // Borde inferior de bomba > tope de paleta
+            if (y < (paddleY + paddleHeight)) {  // Tope de bomba < fondo de paleta
+                // Verifica si la bomba toca la paleta en el eje horizontal
+                if ((x + size) > paddleX) {  // Borde derecho de bomba > izquierda de paleta
+                    if (x < (paddleX + paddleWidth)) {  // Borde izquierdo de bomba < derecha de paleta
+                        // ¡Hay colisión! La bomba impactó la paleta
+                        do erase();           // Borra la bomba de la pantalla
+                        let active = false;   // Desactiva la bomba
+                        let collision = true; // Marca que hubo colisión
                     }
                 }
             }
         }
         
-        return collision;
+        return collision;  // Retorna si hubo o no colisión
     }
     
-    /** Verifica si la bomba está activa */
+    /** 
+     * Verifica si la bomba está activa (cayendo)
+     * Útil para saber si la bomba debe ser procesada en el loop del juego
+     * 
+     * Retorna true si la bomba está activa, false si está inactiva
+     */
     method boolean isActive() {
-        return active;
+        return active;  // Retorna el estado actual de la bomba
     }
     
-    /** Desactiva la bomba */
+    /** 
+     * Desactiva la bomba manualmente
+     * Borra la bomba de la pantalla y marca su estado como inactivo
+     * Se puede usar para limpiar bombas que ya no son necesarias
+     */
     method void deactivate() {
-        if (active) {
-            do erase();
-            let active = false;
+        if (active) {           // Solo desactiva si está activa
+            do erase();          // Borra la bomba de la pantalla
+            let active = false;  // Marca la bomba como inactiva
         }
         return;
     }
