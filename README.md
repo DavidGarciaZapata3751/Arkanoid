@@ -102,4 +102,4 @@ Este proyecto es de código abierto y fue desarrollado con fines educativos como
 
 ## 📽️ Video explicativo
 
-link: https://youtu.be/muJYAxBfVxc?si=5W5QPhk5oz-nwauq
+link video: https://youtu.be/muJYAxBfVxc?si=5W5QPhk5oz-nwauq
